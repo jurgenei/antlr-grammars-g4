@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'antlr'
+    id 'xmlast'
 }
 
 group = 'name.jurgenei.grammars'
@@ -13,20 +15,81 @@ java {
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 dependencies {
+    antlr 'org.antlr:antlr4:4.13.2'
     implementation 'org.antlr:antlr4-runtime:4.13.2'
     testImplementation 'junit:junit:4.13.2'
+}
+
+// ... existing code ...
+
+def grammarDir = file('src/main/antlr/name/jurgenei/parsers')
+def antlrOutputDir = file("generated-src/antlr/main")
+def antlrPackage = 'name.jurgenei.parsers'
+
+tasks.register('generateLexerSources', JavaExec) {
+    group = 'build'
+    description = 'Generate ANTLR lexer sources for ANTLRv4 grammar.'
+    classpath = configurations.antlr
+    mainClass = 'org.antlr.v4.Tool'
+    inputs.files(fileTree(grammarDir) { include '*Lexer.g4' })
+    outputs.dir(antlrOutputDir)
+    doFirst {
+        antlrOutputDir.mkdirs()
+    }
+    args '-listener', '-no-visitor', '-package', antlrPackage, '-o', antlrOutputDir.absolutePath,
+            new File(grammarDir, 'ANTLRv4Lexer.g4').absolutePath
+}
+
+tasks.register('generateParserSources', JavaExec) {
+    group = 'build'
+    description = 'Generate ANTLR parser/listener sources after lexer token files are available.'
+    dependsOn tasks.named('generateLexerSources')
+    classpath = configurations.antlr
+    mainClass = 'org.antlr.v4.Tool'
+    inputs.files(fileTree(grammarDir) { include '*Parser.g4' })
+    outputs.dir(antlrOutputDir)
+    doFirst {
+        antlrOutputDir.mkdirs()
+    }
+    args '-listener', '-no-visitor', '-package', antlrPackage,
+            '-lib', antlrOutputDir.absolutePath, '-o', antlrOutputDir.absolutePath,
+            new File(grammarDir, 'ANTLRv4Parser.g4').absolutePath
+}
+
+tasks.named('compileJava') {
+    dependsOn tasks.named('generateParserSources')
+    // Do not compile G4 sources yet - wait for full gradle-antlr-plugin integration
+    source = []
 }
 
 sourceSets {
     main {
         java {
-            // LexerAdaptor depends on generated ANTLRv4 lexer classes that are not wired in this slice yet.
-            srcDirs = []
+            // Only compile if LexerAdaptor dependencies are available
+            srcDirs = []  // Temporarily disabled until full gradle-antlr-plugin integration
         }
     }
+    test {
+        java {
+            // Include generated ANTLR sources for testing
+            srcDirs += ["$buildDir/generated-src/antlr/main"]
+        }
+    }
+}
+
+tasks.register('compileAntlrSources', JavaCompile) {
+    group = 'build'
+    description = 'Compile ANTLR-generated Java sources.'
+    dependsOn tasks.named('generateParserSources')
+    source = files(
+            fileTree(dir: 'generated-src/antlr/main', include: '**/*.java'),
+            file('src/main/java/name/jurgenei/parsers/LexerAdaptor.java'))
+    classpath = configurations.runtimeClasspath + configurations.antlr
+    destinationDirectory.set(file("$buildDir/classes/java/antlr"))
 }
 
 tasks.register('verifyGrammarSources') {
@@ -50,7 +113,33 @@ tasks.withType(Test).configureEach {
     useJUnit()
 }
 
+tasks.named('compileTestJava') {
+    dependsOn tasks.named('compileAntlrSources')
+    classpath += files("$buildDir/classes/java/antlr")
+}
+
+tasks.named('test') {
+    classpath += files("$buildDir/classes/java/antlr")
+}
+
 tasks.named('check') {
     dependsOn tasks.named('verifyGrammarSources')
 }
 
+tasks.named('xmlast', name.jurgenei.gradle.antlr.XmlAstGradleTask) {
+    group = 'verification'
+    description = 'Parses ANTLR4 grammar samples to XML AST for grammar validation.'
+    dependsOn tasks.named('compileAntlrSources')
+    sourceDirectory.set(layout.projectDirectory.dir('src/test/resources/antlr4'))
+    destinationDirectory.set(layout.buildDirectory.dir('xmlast-samples'))
+    parserClassName.set('name.jurgenei.parsers.ANTLRv4Parser')
+    lexerClassName.set('name.jurgenei.parsers.ANTLRv4Lexer')
+    startRule.set('grammarSpec')
+    includes.set(['**/*.g4'])
+    targetExtension.set('.xml')
+    runtimeClasspath.from(configurations.testRuntimeClasspath, configurations.antlr, files("$buildDir/classes/java/antlr"))
+}
+
+tasks.named('check') {
+    // Skip xmlast for now - focus is on the refactored dynamic class loading test
+}

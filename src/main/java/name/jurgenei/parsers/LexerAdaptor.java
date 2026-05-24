@@ -27,7 +27,7 @@
 */
 package name.jurgenei.parsers;
 
-import name.jurgenei.parsers.antlr.ANTLRv4Lexer;
+import name.jurgenei.parsers.ANTLRv4Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.Token;
