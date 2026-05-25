@@ -14,10 +14,11 @@ dependencies {
 }
 
 tasks.named('xmlast', name.jurgenei.gradle.antlr.XmlAstGradleTask) {
-    sourceDirectory.set(layout.projectDirectory.dir('src/test/resources/antlr4'))
+    dependsOn(rootProject.tasks.named('compileAntlrSources'))
+    sourceDirectory.set(rootProject.layout.projectDirectory.dir('src/test/resources/antlr4'))
     destinationDirectory.set(layout.buildDirectory.dir('xmlast-samples'))
 
-    catalogFile.set(layout.projectDirectory.file('samples/use-case-02-catalog/catalog.xml'))
+    catalogFile.set(layout.projectDirectory.file('catalog.xml'))
     catalogGrammar.set('antlr4')
 
     // Optional override. If omitted, parser/lexer values from catalog are used.
@@ -26,6 +27,10 @@ tasks.named('xmlast', name.jurgenei.gradle.antlr.XmlAstGradleTask) {
 
     includes.set(['**/*.g4'])
     targetExtension.set('.xml')
-    runtimeClasspath.from(configurations.testRuntimeClasspath, files("$buildDir/classes/java/antlr"))
+    runtimeClasspath.from(
+            rootProject.configurations.testRuntimeClasspath,
+            rootProject.configurations.antlr,
+            files("${rootProject.buildDir}/classes/java/antlr")
+    )
 }
 

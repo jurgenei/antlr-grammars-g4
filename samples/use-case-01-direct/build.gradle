@@ -14,7 +14,8 @@ dependencies {
 }
 
 tasks.named('xmlast', name.jurgenei.gradle.antlr.XmlAstGradleTask) {
-    sourceDirectory.set(layout.projectDirectory.dir('src/test/resources/antlr4'))
+    dependsOn(rootProject.tasks.named('compileAntlrSources'))
+    sourceDirectory.set(rootProject.layout.projectDirectory.dir('src/test/resources/antlr4'))
     destinationDirectory.set(layout.buildDirectory.dir('xmlast-samples'))
 
     parserClassName.set('name.jurgenei.parsers.ANTLRv4Parser')
@@ -24,7 +25,11 @@ tasks.named('xmlast', name.jurgenei.gradle.antlr.XmlAstGradleTask) {
     includes.set(['**/*.g4'])
     targetExtension.set('.xml')
 
-    // Add compiled generated classes and runtime libs.
-    runtimeClasspath.from(configurations.testRuntimeClasspath, files("$buildDir/classes/java/antlr"))
+    // Use parser/lexer classes generated in the root project.
+    runtimeClasspath.from(
+            rootProject.configurations.testRuntimeClasspath,
+            rootProject.configurations.antlr,
+            files("${rootProject.buildDir}/classes/java/antlr")
+    )
 }
 
