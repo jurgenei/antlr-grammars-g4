@@ -2,6 +2,8 @@ plugins {
     id 'java'
     id 'antlr'
     id 'xmlast'
+    id 'maven-publish'
+    id 'signing'
 }
 
 group = 'name.jurgenei.grammars'
@@ -11,6 +13,7 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+    withSourcesJar()
 }
 
 repositories {
@@ -24,7 +27,53 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
 }
 
-// ... existing code ...
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            
+            pom {
+                name = 'ANTLR4 Grammar - G4 Self-Grammar'
+                description = 'ANTLR v4 self-grammar module'
+                url = 'https://github.com/jurgenei/antlr-grammars-g4'
+                
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'jurgenei'
+                        name = 'Jurgen Hildebrand'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:https://github.com/jurgenei/antlr-grammars-g4.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/jurgenei/antlr-grammars-g4.git'
+                    url = 'https://github.com/jurgenei/antlr-grammars-g4'
+                }
+            }
+        }
+    }
+    
+    repositories {
+        mavenLocal()
+    }
+}
+
+signing {
+    required { gradle.taskGraph.hasTask("publish") }
+    def signingKey = findProperty("signingKey")
+    def signingPassword = findProperty("signingPassword")
+    if (signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.mavenJava
+    }
+}
 
 def grammarDir = file('src/main/antlr/name/jurgenei/parsers')
 def antlrOutputDir = file("generated-src/antlr/main")

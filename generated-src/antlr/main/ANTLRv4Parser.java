@@ -1,4 +1,4 @@
-// Generated from /Users/cs79en/Developer/GitHub/antlr-grammars-g4/src/main/antlr/name/jurgenei/parsers/ANTLRv4Parser.g4 by ANTLR 4.13.2
+// Generated from /Users/cs79en/Developer/GitHub/gradle/antlr-grammars-g4/src/main/antlr/name/jurgenei/parsers/ANTLRv4Parser.g4 by ANTLR 4.13.2
 package name.jurgenei.parsers;
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
