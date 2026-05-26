@@ -21,46 +21,59 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Ensure local plugin repositories are available
+      - name: Ensure gradle-antlr-plugin is available
         shell: bash
         run: |
           set -euo pipefail
           ROOT_PARENT="$(dirname "$GITHUB_WORKSPACE")"
           OWNER="${GITHUB_REPOSITORY_OWNER}"
+          
+          if [ -d "$ROOT_PARENT/gradle-antlr-plugin/.git" ]; then
+            echo "✓ gradle-antlr-plugin already present"
+            exit 0
+          fi
+          
+          echo "Cloning gradle-antlr-plugin from $OWNER..."
+          if git clone --depth 1 "https://github.com/$OWNER/gradle-antlr-plugin.git" "$ROOT_PARENT/gradle-antlr-plugin"; then
+            echo "✓ Successfully cloned from $OWNER/gradle-antlr-plugin"
+            exit 0
+          fi
+          
+          echo "Falling back to jurgenei/gradle-antlr-plugin..."
+          if git clone --depth 1 "https://github.com/jurgenei/gradle-antlr-plugin.git" "$ROOT_PARENT/gradle-antlr-plugin"; then
+            echo "✓ Successfully cloned from jurgenei/gradle-antlr-plugin"
+            exit 0
+          fi
+          
+          echo "✘ Could not clone gradle-antlr-plugin from any source"
+          exit 1
 
-          clone_if_missing() {
-            local target_dir="$1"
-            local required="$2"
-            shift 2
-
-            if [ -d "$target_dir/.git" ]; then
-              echo "Using existing repo: $target_dir"
-              return 0
-            fi
-
-            for repo in "$@"; do
-              if git clone --depth 1 "$repo" "$target_dir"; then
-                echo "Cloned $repo -> $target_dir"
-                return 0
-              fi
-              echo "Clone attempt failed: $repo"
-            done
-
-            if [ "$required" = "true" ]; then
-              echo "Required repository is unavailable: $target_dir"
-              exit 1
-            fi
-
-            echo "Optional repository unavailable: $target_dir"
-          }
-
-          clone_if_missing "$ROOT_PARENT/gradle-antlr-plugin" true \
-            "https://github.com/$OWNER/gradle-antlr-plugin.git" \
-            "https://github.com/jurgenei/gradle-antlr-plugin.git"
-
-          clone_if_missing "$ROOT_PARENT/gradle-antlr-parse-plugin" false \
-            "https://github.com/$OWNER/gradle-antlr-parse-plugin.git" \
-            "https://github.com/jurgenei/gradle-antlr-parse-plugin.git"
+      - name: Ensure gradle-antlr-parse-plugin is available (optional)
+        shell: bash
+        continue-on-error: true
+        run: |
+          ROOT_PARENT="$(dirname "$GITHUB_WORKSPACE")"
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          
+          if [ -d "$ROOT_PARENT/gradle-antlr-parse-plugin/.git" ]; then
+            echo "✓ gradle-antlr-parse-plugin already present"
+            exit 0
+          fi
+          
+          echo "Cloning gradle-antlr-parse-plugin from $OWNER..."
+          if git clone --depth 1 "https://github.com/$OWNER/gradle-antlr-parse-plugin.git" "$ROOT_PARENT/gradle-antlr-parse-plugin"; then
+            echo "✓ Successfully cloned from $OWNER/gradle-antlr-parse-plugin"
+            exit 0
+          fi
+          
+          echo "Falling back to jurgenei/gradle-antlr-parse-plugin..."
+          if git clone --depth 1 "https://github.com/jurgenei/gradle-antlr-parse-plugin.git" "$ROOT_PARENT/gradle-antlr-parse-plugin"; then
+            echo "✓ Successfully cloned from jurgenei/gradle-antlr-parse-plugin"
+            exit 0
+          fi
+          
+          echo "⚠ gradle-antlr-parse-plugin not available (optional); tests will proceed without it"
+          exit 0
 
       - name: Build gradle-antlr-parse-plugin when present
         shell: bash
