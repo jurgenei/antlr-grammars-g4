@@ -1,7 +1,8 @@
 plugins {
     id 'java'
     id 'antlr'
-    id 'xmlast'
+    // Plugin id renamed from 'xmlast' to this fully-qualified id.
+    id 'name.jurgenei.gradle.antlr'
 }
 
 repositories {

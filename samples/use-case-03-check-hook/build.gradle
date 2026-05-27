@@ -1,12 +1,19 @@
 plugins {
     id 'java'
     id 'antlr'
-    id 'xmlast'
+    // Plugin id renamed from 'xmlast' to this fully-qualified id.
+    id 'name.jurgenei.gradle.antlr'
 }
 
+repositories {
+    mavenCentral()
+}
 // Keep grammar source checks in check lifecycle.
 tasks.named('check') {
-    dependsOn tasks.named('verifyGrammarSources')
     dependsOn tasks.named('xmlast')
+    // Some sample contexts do not define verifyGrammarSources.
+    if (tasks.findByName('verifyGrammarSources') != null) {
+        dependsOn tasks.named('verifyGrammarSources')
+    }
 }
 
