@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'name.jurgenei.grammars'
-version = '0.1.0-SNAPSHOT'
+version = '0.1.0'
 
 java {
     toolchain {
@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    antlr 'org.antlr:antlr4:4.13.2'
+    implementation 'org.antlr:antlr4:4.13.2'
     implementation 'org.antlr:antlr4-runtime:4.13.2'
     testImplementation 'junit:junit:4.13.2'
 }
